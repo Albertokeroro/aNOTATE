@@ -1,0 +1,25 @@
+# Python caches
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Docker & Virtual Environments
+.env
+.venv/
+venv/
+ENV/
+
+# Project Specific Data (Crucial for audio)
+worker/separated/
+*.mp3
+*.wav
+*.mid
+*.midi
+
+# IDE Configurations
+.vscode/
+.idea/
+*.suo
+*.ntvs*

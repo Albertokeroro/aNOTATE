@@ -1,0 +1,8 @@
+demucs
+torchaudio
+basic-pitch
+celery
+redis
+soundfile
+numpy<2
+pretty_midi
