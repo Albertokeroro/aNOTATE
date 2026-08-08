@@ -16,7 +16,8 @@
 
 ##  Quick Start
 1. Clone the repository:
-   git clone https://github.com/Albertokeroro/anotate.git
+   ```bash
+git clone https://github.com/Albertokeroro/anotate.git
    cd anotate
    
 2. Spin up the containers using Docker Compose:
