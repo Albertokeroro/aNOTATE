@@ -1,15 +1,35 @@
 services:
-  redis:
-    image: redis:alpine
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    env_file:
+      - .env  
     ports:
-      - "6379:6379"
-
-  ai_worker:
-    build: ./worker
+      - "3838:8000"
+    volumes:
+      - ./media:/app/media
     depends_on:
       - redis
+
+  ai_worker:
+    build:
+      context: ./worker
+      dockerfile: Dockerfile
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'      # Max 2 CPU cores
+          memory: 8G       # Max 8 Gigabytes of RAM
     environment:
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
     volumes:
-      - ./worker:/app
+      - ./media:/app/media
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"

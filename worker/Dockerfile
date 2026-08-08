@@ -16,4 +16,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
+RUN useradd -m anotate
+RUN mkdir -p /app/media && chown -R anotate:anotate /app/media
+USER anotate
+
+
 CMD ["celery", "-A", "tasks", "worker", "--loglevel=info", "--concurrency=1"]

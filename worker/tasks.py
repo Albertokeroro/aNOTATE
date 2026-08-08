@@ -1,4 +1,5 @@
 import os
+import shutil
 import subprocess
 from celery import Celery
 from basic_pitch.inference import predict
@@ -46,8 +47,12 @@ def process_audio_to_midi(self, input_audio_path: str, output_midi_path: str):
     try:
         # STEP 1: RUN DEMUCS SEPARATION
         print(f"[{self.request.id}] Launching Demucs stem separation...")
-        subprocess.run(["demucs", input_audio_path], check=True)
+        # Force the output to the shared media volume
+        subprocess.run(["demucs", "-o", "/app/media/separated", input_audio_path], check=True)
 
+        # Update the stem directory reference to match the new output path
+        stem_dir = f"/app/media/separated/htdemucs/{base_name}"
+        
         # STEP 2: CREATE A MULTI-TRACK MIDI MASTER CONTAINER
         pm_master = pretty_midi.PrettyMIDI()
 
