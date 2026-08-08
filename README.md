@@ -11,7 +11,7 @@
 * **AI Stem Isolation:** Separates audio files into isolated stems (Vocals, Bass, Drums, and Other) using Demucs.
 * **Smart MIDI Extraction:** Converts audio stems into MIDI using Spotify's `basic-pitch` machine learning model with tuned confidence thresholds to eliminate artifact clutter.
 * **Grid-Aware Syncing:** Automatically detects track BPM and downbeat offsets so your stems and MIDI lock straight into your DAW's timeline.
-* **Modular Pipeline Interface:**download individual or packaged outputs.
+* **Modular Pipeline Interface:** download individual or packaged outputs.
 
 
 ##  Quick Start
