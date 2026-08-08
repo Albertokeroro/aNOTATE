@@ -1,7 +1,9 @@
 import os
 import shutil
+import zipfile
+import io
 from fastapi import FastAPI, UploadFile, File, Request, BackgroundTasks
-from fastapi.responses import HTMLResponse, FileResponse
+from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from celery import Celery
@@ -47,3 +49,27 @@ async def get_status(task_id: str):
     if res.ready():
         return {"status": res.status, "result": res.result}
     return {"status": res.status}
+
+@app.get("/api/download-stems/{base_name}")
+async def download_stems_zip(base_name: str):
+    stem_dir = os.path.join(MEDIA_DIR, "separated", "htdemucs", base_name)
+    
+    # Check if the folder exists
+    if not os.path.exists(stem_dir):
+        return {"error": "Stems not found."}
+
+    # Create an in-memory zip file
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+        for stem in ["vocals.wav", "bass.wav", "drums.wav", "other.wav"]:
+            file_path = os.path.join(stem_dir, stem)
+            if os.path.exists(file_path):
+                zip_file.write(file_path, arcname=stem)
+    
+    zip_buffer.seek(0)
+    
+    return StreamingResponse(
+        zip_buffer, 
+        media_type="application/zip", 
+        headers={"Content-Disposition": f"attachment; filename={base_name}_stems.zip"}
+    )

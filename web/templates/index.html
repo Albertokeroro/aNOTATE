@@ -2,37 +2,310 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>aNOTATE // Audio to MIDI Studio</title>
+    <title>aNOTATE // Audio Pipeline</title>
     <style>
-        body { font-family: monospace; background: #121212; color: #00ff66; padding: 2rem; }
-        .card { border: 1px solid #00ff66; padding: 1.5rem; max-width: 600px; margin: 0 auto; }
-        button { background: #00ff66; color: #121212; border: none; padding: 0.5rem 1rem; cursor: pointer; font-weight: bold; }
-        #status { margin-top: 1rem; font-size: 1.1rem; }
+        body {
+            font-family: monospace;
+            color: #00e5ff;
+            padding: 2rem;
+            margin: 0;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* --- DYNAMIC BACKGROUND --- */
+        .bg-container {
+            position: fixed;
+            top: 0; 
+            left: 0; 
+            width: 100vw; 
+            height: 100vh;
+            z-index: -1;
+            background: linear-gradient(to bottom, #030612, #0a1835);
+            overflow: hidden;
+        }
+
+        /* Animated Waves */
+        .wave {
+            position: absolute;
+            bottom: 0;
+            width: 200%;
+            height: 200px;
+            /* Blue SVG Wave */
+            background: url('data:image/svg+xml;utf8,<svg viewBox="0 0 1440 320" xmlns="http://www.w3.org/2000/svg"><path fill="%2300e5ff" fill-opacity="0.15" d="M0,160L48,165.3C96,171,192,181,288,165.3C384,149,480,107,576,96C672,85,768,107,864,133.3C960,160,1056,192,1152,186.7C1248,181,1344,139,1392,117.3L1440,96L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path></svg>') repeat-x;
+            background-size: 50% 100%;
+            animation: move-wave 15s linear infinite;
+        }
+        .wave2 {
+            bottom: -20px;
+            opacity: 0.5;
+            animation: move-wave 22s linear infinite reverse;
+        }
+        .wave3 {
+            bottom: -40px;
+            opacity: 0.2;
+            animation: move-wave 10s linear infinite;
+        }
+
+        @keyframes move-wave {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+
+        /* Floating Musical Notes */
+        .note {
+            position: absolute;
+            color: rgba(0, 229, 255, 0.25);
+            font-size: 2rem;
+            animation: float-up 10s linear infinite;
+            bottom: -100px;
+            z-index: 0;
+        }
+        @keyframes float-up {
+            0% { transform: translateY(0) rotate(-10deg); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(-120vh) rotate(20deg); opacity: 0; }
+        }
+        .note:nth-child(1) { left: 15%; animation-duration: 14s; animation-delay: 0s; font-size: 3rem; }
+        .note:nth-child(2) { left: 35%; animation-duration: 18s; animation-delay: 3s; font-size: 2rem; }
+        .note:nth-child(3) { left: 55%; animation-duration: 12s; animation-delay: 1s; font-size: 4rem; }
+        .note:nth-child(4) { left: 75%; animation-duration: 16s; animation-delay: 5s; font-size: 2.5rem; }
+        .note:nth-child(5) { left: 85%; animation-duration: 20s; animation-delay: 2s; font-size: 3.5rem; }
+        .note:nth-child(6) { left: 25%; animation-duration: 15s; animation-delay: 7s; font-size: 2.2rem; }
+
+        /* --- PIPELINE INTERFACE --- */
+        .studio-header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+            font-size: 1.3rem;
+            letter-spacing: 2px;
+            font-weight: bold;
+            position: relative;
+            z-index: 10;
+        }
+        .pipeline {
+            display: flex;
+            align-items: stretch;
+            justify-content: center;
+            gap: 1rem;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            padding-bottom: 2rem;
+            position: relative;
+            z-index: 10;
+        }
+        .node {
+            border: 1px solid #00e5ff;
+            background: rgba(5, 12, 25, 0.7);
+            backdrop-filter: blur(8px);
+            padding: 1.5rem;
+            width: 220px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            box-shadow: 0 0 15px rgba(0, 229, 255, 0.1);
+        }
+        .node-title {
+            text-align: center;
+            font-weight: bold;
+            border-bottom: 1px dashed #00e5ff;
+            padding-bottom: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .arrow {
+            display: flex;
+            align-items: center;
+            font-size: 2rem;
+            color: #00e5ff;
+            z-index: 10;
+        }
+        
+        /* Node 1: Upload styling */
+        .upload-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex-grow: 1;
+            cursor: pointer;
+            transition: background 0.2s, box-shadow 0.2s;
+            padding: 1rem;
+            margin: -0.5rem; /* Expands hit area slightly to fill the node */
+        }
+        .upload-container:hover {
+            background: rgba(0, 229, 255, 0.05);
+            box-shadow: inset 0 0 15px rgba(0, 229, 255, 0.2);
+        }
+        .plus-sign {
+            font-size: 5rem;
+            font-weight: bold;
+            line-height: 1;
+            color: rgba(0, 229, 255, 0.6);
+            transition: transform 0.2s, color 0.2s;
+        }
+        .upload-container:hover .plus-sign {
+            color: #00e5ff;
+            transform: scale(1.1);
+        }
+        input[type="file"] {
+            display: none;
+        }
+
+        /* Stacks & Download Buttons */
+        .stack {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex-grow: 1;
+            margin-bottom: 1.5rem;
+        }
+        .dl-btn {
+            background: rgba(0, 0, 0, 0.4);
+            color: #00e5ff;
+            border: 1px solid #00e5ff;
+            padding: 0.5rem;
+            text-align: center;
+            text-decoration: none;
+            cursor: pointer;
+            font-family: monospace;
+            font-size: 0.9rem;
+            transition: 0.2s;
+        }
+        .dl-btn:hover:not([disabled]) {
+            background: #00e5ff;
+            color: #030612;
+            font-weight: bold;
+        }
+        .dl-btn[disabled] {
+            border: 1px dashed #2a4b66;
+            color: #2a4b66;
+            cursor: not-allowed;
+            pointer-events: none;
+            background: transparent;
+        }
+        .zip-btn {
+            margin-top: auto;
+            font-weight: bold;
+            background: rgba(0, 229, 255, 0.1);
+        }
+        .status-box {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 1rem;
+            border: 1px dotted #00e5ff;
+            text-align: center;
+            background: rgba(5, 12, 25, 0.8);
+            backdrop-filter: blur(5px);
+            position: relative;
+            z-index: 10;
+        }
+        .blank-placeholder {
+            color: #2a4b66;
+            text-align: center;
+            margin-top: 2rem;
+            font-style: italic;
+        }
     </style>
 </head>
 <body>
-    <div class="card">
-        <h2>// aNOTATE STUDIO GATEWAY</h2>
-        <input type="file" id="audioInput" accept="audio/*">
-        <button onclick="uploadFile()">PROCESS TRACK</button>
-        <div id="status">Status: Idle</div>
-        <div id="download"></div>
+
+    <!-- BACKGROUND ANIMATION -->
+    <div class="bg-container">
+        <div class="note">♪</div>
+        <div class="note">♫</div>
+        <div class="note">♬</div>
+        <div class="note">♪</div>
+        <div class="note">♫</div>
+        <div class="note">♩</div>
+        <div class="wave wave1"></div>
+        <div class="wave wave2"></div>
+        <div class="wave wave3"></div>
+    </div>
+
+    <!-- UI -->
+    <div class="studio-header">
+        // aNOTATE PIPELINE INTERFACE
+    </div>
+
+    <div class="pipeline">
+        <!-- NODE 1: UPLOAD -->
+        <div class="node">
+            <div class="node-title">1. INPUT AUDIO</div>
+            <!-- Make the whole area a clickable label -->
+            <label for="audioInput" class="upload-container">
+                <div class="plus-sign">+</div>
+                <input type="file" id="audioInput" accept="audio/*" onchange="uploadFile()">
+                <div style="margin-top: 1.5rem; font-size: 0.8rem; text-align: center; word-break: break-all;" id="file-name-display">Awaiting Track...</div>
+            </label>
+        </div>
+
+        <div class="arrow">⟶</div>
+
+        <!-- NODE 2: STEMS -->
+        <div class="node">
+            <div class="node-title">2. ISOLATED STEMS</div>
+            <div class="stack">
+                <a class="dl-btn stem-link" disabled>Vocals Stem</a>
+                <a class="dl-btn stem-link" disabled>Bass Stem</a>
+                <a class="dl-btn stem-link" disabled>Drums Stem</a>
+                <a class="dl-btn stem-link" disabled>Other Stem</a>
+            </div>
+            <a class="dl-btn zip-btn" id="zip-stems-btn" disabled>Download All Stems</a>
+        </div>
+
+        <div class="arrow">⟶</div>
+
+        <!-- NODE 3: MIDI -->
+        <div class="node">
+            <div class="node-title">3. ISOLATED MIDI</div>
+            <div class="stack">
+                <a class="dl-btn midi-link" disabled>Vocals MIDI</a>
+                <a class="dl-btn midi-link" disabled>Bass MIDI</a>
+                <a class="dl-btn midi-link" disabled>Chords MIDI</a>
+            </div>
+            <a class="dl-btn zip-btn" id="master-midi-btn" disabled>Download Full-Track MIDI</a>
+        </div>
+
+        <div class="arrow">⟶</div>
+
+        <!-- NODE 4: SHEET MUSIC -->
+        <div class="node">
+            <div class="node-title">4. SHEET MUSIC</div>
+            <div class="blank-placeholder">
+                [ MODULE NOT YET IMPLEMENTED ]
+            </div>
+        </div>
+    </div>
+
+    <div class="status-box" id="status">
+        SYSTEM IDLE: Ready for input.
     </div>
 
     <script>
         async function uploadFile() {
             const input = document.getElementById('audioInput');
-            if (!input.files[0]) return alert('Select a file');
+            if (!input.files[0]) return;
+
+            const file = input.files[0];
+            const baseName = file.name.split('.')[0];
+            document.getElementById('file-name-display').innerText = file.name;
+
+            document.querySelectorAll('.dl-btn').forEach(btn => btn.setAttribute('disabled', 'true'));
+            document.querySelectorAll('.dl-btn').forEach(btn => btn.removeAttribute('href'));
 
             const formData = new FormData();
-            formData.append('file', input.files[0]);
+            formData.append('file', file);
 
-            document.getElementById('status').innerText = 'Status: Uploading track...';
+            document.getElementById('status').innerHTML = 'UPLOADING TRACK <span style="animation: blink 1s infinite;">...</span>';
 
-            const res = await fetch('/api/upload', { method: 'POST', body: formData });
-            const data = await res.json();
-            
-            checkStatus(data.task_id, input.files[0].name.split('.')[0]);
+            try {
+                const res = await fetch('/api/upload', { method: 'POST', body: formData });
+                const data = await res.json();
+                checkStatus(data.task_id, baseName);
+            } catch (e) {
+                document.getElementById('status').innerText = 'ERROR: API Connection Failed.';
+            }
         }
 
         async function checkStatus(taskId, baseName) {
@@ -40,17 +313,43 @@
                 const res = await fetch(`/api/status/${taskId}`);
                 const data = await res.json();
 
-                document.getElementById('status').innerText = `Status: ${data.status}`;
+                document.getElementById('status').innerHTML = `PROCESSING TASK [${taskId}]: <strong>${data.status}</strong>`;
 
                 if (data.status === 'SUCCESS') {
                     clearInterval(interval);
-                    document.getElementById('download').innerHTML = `
-                        <p>Separation & Extraction Complete!</p>
-                        <a href="/media/${baseName}_output.mid" download style="color:#00ff66;">Download Multi-Track MIDI</a>
-                    `;
+                    document.getElementById('status').innerText = 'SUCCESS: Pipeline execution complete.';
+                    
+                    // Enable Stems 
+                    const stemLinks = document.querySelectorAll('.stem-link');
+                    const stems = ['vocals', 'bass', 'drums', 'other'];
+                    stemLinks.forEach((link, idx) => {
+                        link.removeAttribute('disabled');
+                        link.href = `/media/separated/htdemucs/${baseName}/${stems[idx]}.wav`;
+                        link.download = `${baseName}_${stems[idx]}.wav`;
+                    });
+                    // Enable ZIP download
+                    const zipStemsBtn = document.getElementById('zip-stems-btn');
+                    zipStemsBtn.removeAttribute('disabled');
+                    zipStemsBtn.href = `/api/download-stems/${baseName}`;
+
+                    // Enable Individual MIDIs
+                    const midiLinks = document.querySelectorAll('.midi-link');
+                    const midiTypes = ['vocals', 'bass', 'other'];
+                    midiLinks.forEach((link, idx) => {
+                        link.removeAttribute('disabled');
+                        link.href = `/media/${baseName}_${midiTypes[idx]}.mid`;
+                        link.download = `${baseName}_${midiTypes[idx]}.mid`;
+                    });
+
+                    // Enable Master MIDI 
+                    const masterMidiBtn = document.getElementById('master-midi-btn');
+                    masterMidiBtn.removeAttribute('disabled');
+                    masterMidiBtn.href = `/media/${baseName}_output.mid`;
+                    masterMidiBtn.download = `${baseName}_master.mid`;
+                    
                 } else if (data.status === 'FAILURE') {
                     clearInterval(interval);
-                    document.getElementById('status').innerText = 'Status: Processing Failed';
+                    document.getElementById('status').innerText = 'ERROR: Background processing failed.';
                 }
             }, 3000);
         }
