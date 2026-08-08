@@ -15,14 +15,12 @@
 
 
 ##  Quick Start
-1. Clone the repository:
-   ```bash
-git clone https://github.com/Albertokeroro/anotate.git
-   cd anotate
-   
-2. Spin up the containers using Docker Compose:
-   docker compose up -d --build
 
+ ```bash 
+git clone https://github.com/Albertokeroro/anotate.git
+cd anotate
+docker compose up -d --build
+```
 3. Open your browser and navigate to:
    http://localhost:3838
 
